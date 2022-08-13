@@ -1,0 +1,9 @@
+- env. Vagrant + docker/VM+docker+(pip3), ... etc: nginx, back, db
+  - vag.up.vm(1) -> ans.install: pip,docker
+  - molecule.ansible???
+
+- code. 'https://github.com/Zenahr/flask-sqlite3-todo-crud':
+  - docker-compose: nginx, back, db
+
+- Создайте диаграмму
+

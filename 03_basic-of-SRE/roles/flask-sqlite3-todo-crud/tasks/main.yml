@@ -1,0 +1,92 @@
+---
+
+# install.yml
+- name: Install packages
+  apt: pkg={{ item }} state=latest update_cache=True cache_valid_time=86400
+  with_items:
+    - python3-pip
+    #- git-all
+    - git
+
+- name: Docker.get
+  get_url:
+    url: https://get.docker.com
+    dest: /tmp/get-docker.sh
+    mode: 0500
+
+- name: Docker.install
+  shell: /tmp/get-docker.sh >> /tmp/get-docker.log
+
+- name: Docker.install.log removed
+  file:
+    path: /tmp/get-docker.sh
+    state: absent
+
+# configure.yml
+- name: Add "{{ ansible_ssh_user }}" to group "docker"
+  user:
+    name: "{{ ansible_ssh_user }}"
+    shell: /bin/sh
+    groups: docker
+    append: yes
+
+- name: Pip.update
+  shell: python3 -m pip install --upgrade pip
+
+- name: Pip.install.modules
+  pip:
+    #become: False
+    name:
+      - docker-compose
+      - docker
+    extra_args: --user
+    state: latest
+    executable: pip3
+#    virtualenv_site_packages: yes
+
+- name: Git.clone "Zenahr/flask-sqlite3-todo-crud"
+  become: False
+  ansible.builtin.git:
+    repo: 'https://github.com/Zenahr/flask-sqlite3-todo-crud.git'
+    dest: /home/vagrant/code
+    version: master
+    update: no
+    refspec: '+refs/pull/*:refs/heads/*'
+
+- name: Replace bind interface (lo->*)
+  become: False
+  ansible.builtin.replace:
+    path: /home/$USER/code/app.py
+    regexp: '(app.run\(debug=True\))'
+    replace: 'app.run(host="0.0.0.0", debug=True)'
+
+- name: copy Dockerfile
+  become: False
+  copy: src=Dockerfile dest=~ backup=no
+
+- name: copy docker-compose.yml
+  become: False
+  copy: src=docker-compose.yml dest=~ backup=no
+
+- name: build container.image
+  become: True
+  docker_image:
+    name: code_container:v1.0
+    build:
+      path: /home/{{ ansible_ssh_user }}
+    source: build
+    state: present
+
+- name: compose container.run
+  become: True
+  docker_compose:
+    project_src: /home/{{ ansible_ssh_user }}
+    build: no
+    state: present
+    restarted: yes
+  register: output
+  notify:
+    - restart docker
+
+#- debug:
+#    var: output

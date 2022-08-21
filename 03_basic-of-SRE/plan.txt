@@ -1,6 +1,52 @@
 - env. Vagrant + docker/VM+docker+(pip3), ... etc: nginx, back, db
   - vag.up.vm(1) -> ans.install: pip,docker
-  - molecule.ansible???
+  # OS.prepare
+  apt-get update
+  apt-get remove docker docker-engine docker.io containerd runc
+  apt install python3-pip git
+  curl -fsSL https://get.docker.com -o get-docker.sh
+  sh ./get-docker.sh
+  sudo usermod -aG docker $USER
+
+  python3 -m pip install --upgrade pip
+  pip3 install docker-compose docker
+
+  # Docker.app
+  git clone https://github.com/Zenahr/flask-sqlite3-todo-crud.git
+  sed -i 's\app.run(debug=True)\app.run(host="0.0.0.0", debug=True)\' flask-sqlite3-todo-crud/app.py
+  vim Dockerfile
+  ```
+FROM python:3.8-slim
+RUN pip install --no-cache-dir flask flask_sqlalchemy
+WORKDIR /app
+CMD python app.py
+  ```
+
+  vim docker-compose.yml
+  ```
+version: '2'
+
+volumes:
+  app:
+
+services:
+  app:
+    image: app:latest
+    container_name: app
+    restart: always
+    command: python app.py
+    ports:
+      - 5000:5000
+    volumes:
+      - ./flask-sqlite3-todo-crud:/app
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+  ```
+
+  docker build -f Dockerfile -t app:0.1 .
+  docker-compose up -d
 
 - code. 'https://github.com/Zenahr/flask-sqlite3-todo-crud':
   - docker-compose: nginx, back, db

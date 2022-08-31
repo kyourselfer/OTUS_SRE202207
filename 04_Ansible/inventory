@@ -1,0 +1,6 @@
+[cluster00]
+funkwhale01 ansible_ssh_host=127.0.0.1 ansible_port=2202
+ami2 ansible_ssh_host=127.0.0.1 ansible_port=2203
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

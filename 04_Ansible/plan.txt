@@ -1,0 +1,3 @@
+- push1: Настройка роли для запуска на Deb10, Amazon2 и пуш в main
+- push2: Создание ветки molecule-test, создание assets
+- push3: Refactoring Ansible role (dist: vars,handlers,meta,default)

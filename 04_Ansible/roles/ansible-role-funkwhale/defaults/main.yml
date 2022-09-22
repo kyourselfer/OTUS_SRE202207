@@ -1,0 +1,6 @@
+# Generate one using `openssl rand -base64 45`, for example
+funkwhale_secret: X06DUinipK6MNRcH4y7JnT5QOub5wwOxy72aPLMRkEq54dVgYRUEEcvlmrhu
+funkwhale_domain: yourdomain.funkwhale
+funkwhale_db: funkwhale_database
+funkwhale_db_user: funkwhale
+funkwhale_db_password: password

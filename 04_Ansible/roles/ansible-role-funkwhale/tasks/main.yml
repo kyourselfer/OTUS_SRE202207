@@ -1,0 +1,120 @@
+---
+- name: validate configuration
+  assert:
+    that:
+      - funkwhale_domain is defined
+
+- name: install packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - git
+
+- name: check out master branch
+  git:
+    repo: 'https://dev.funkwhale.audio/funkwhale/funkwhale'
+    dest: /srv/funkwhale
+    version: master
+
+- name: Add the user
+  user:
+    name: funkwhale
+    shell: /usr/bin/nologin
+    home: /srv/funkwhale
+    #    create_home: true
+
+- name: install packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - curl
+    - python3-pip
+    - python3-venv
+    - git
+    - unzip
+    - libldap2-dev
+    - libsasl2-dev
+    - build-essential
+    - ffmpeg
+    - libjpeg-dev
+    - libmagic-dev
+    - libpq-dev
+    - postgresql-client
+    - python3-dev
+
+
+- name: Install wheel to virtualenv
+  pip:
+    name: wheel
+    virtualenv: /srv/funkwhale/virtualenv
+    virtualenv_command: /usr/bin/python3 -m venv
+
+- name: Upgrade pip to the last version
+  pip:
+    name: pip
+    virtualenv: /srv/funkwhale/virtualenv
+    virtualenv_command: /usr/bin/python3 -m venv
+
+- name: Install requirements
+  pip:
+    requirements: /srv/funkwhale/api/requirements.txt
+    virtualenv: /srv/funkwhale/virtualenv
+    virtualenv_command: /usr/bin/python3 -m venv
+
+
+# TODO postgres and redis must be on the same host
+- name: Configure beat systemd service
+  template:
+    src: funkwhale-beat.service.j2
+    dest: "/etc/systemd/system/funkwhale-beat.service"
+
+
+- name: Configure server systemd service
+  template:
+    src: funkwhale-server.service.j2
+    dest: "/etc/systemd/system/funkwhale-server.service"
+
+
+- name: Configure worker systemd service
+  template:
+    src: funkwhale-worker.service.j2
+    dest: "/etc/systemd/system/funkwhale-worker.service"
+
+
+- name: Configure systemd target
+  template:
+    src: funkwhale.target.j2
+    dest: "/etc/systemd/system/funkwhale.target"
+
+- name: Create config directory
+  file:
+    path: /srv/funkwhale/config
+    owner: funkwhale
+    group: root
+    state: directory
+
+- name: Configure service
+  template:
+    src: env.j2
+    dest: "/srv/funkwhale/config/.env"
+    owner: funkwhale
+    group: root
+    mode: 0600
+
+- name: Run an initial migration
+  django_manage:
+    command: migrate
+    app_path: "/srv/funkwhale/api"
+    pythonpath: "/usr/bin/python3"
+    virtualenv: "/srv/funkwhale/virtualenv"
+  tags: molecule-notest
+
+- name: Configure nginx
+  template:
+    src: funkwhale.conf.j2
+    dest: "/etc/nginx/sites-enabled/funkwhale.conf"
+  tags: molecule-notest

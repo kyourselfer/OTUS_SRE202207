@@ -1,0 +1,8 @@
+---
+# Create front env
+- hosts: funkwhale01
+  gather_facts: true
+  become: yes
+  roles:
+    - { role: ansible-role-funkwhale }
+

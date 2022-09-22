@@ -1,0 +1,7 @@
+---
+# Create front env
+- hosts: cluster00
+  gather_facts: false
+  become: yes
+  roles:
+    - { role: flask-sqlite3-todo-crud }

@@ -1,0 +1,19 @@
+version: '2'
+
+volumes:
+  app:
+
+services:
+  app:
+    image: code_container:v1.0
+    container_name: app
+    restart: always
+    command: python app.py
+    ports:
+      - 5000:5000
+    volumes:
+      - ./code:/app
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1

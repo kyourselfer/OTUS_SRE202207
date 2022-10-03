@@ -1,3 +1,4 @@
+import threading
 import prometheus_client
 import werkzeug
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -24,5 +25,15 @@ def hello():
 # Add prometheus wsgi middleware to route /metrics requests
 app_dispatch = werkzeug.middleware.dispatcher.DispatcherMiddleware(app, {'/metrics': prometheus_client.make_wsgi_app()})
 
+def update_uptime():
+  while True:
+    SERVICE_UPTIME.inc(1)
+    time.sleep(1)
+
+SERVICE_UPTIME.set(0)
+uptime_updater = threading.Thread(target=update_uptime)
+uptime_updater.start()
+
+
 # BASH
-# uwsgi --http 127.0.0.1:9999 --wsgi-file prometheus_exporter_flask.py --callable app_dispatch
+# uwsgi --http 127.0.0.1:9090 --wsgi-file prometheus_exporter_flask.py --callable app_dispatch

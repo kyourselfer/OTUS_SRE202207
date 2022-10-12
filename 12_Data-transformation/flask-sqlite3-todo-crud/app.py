@@ -2,21 +2,26 @@ from flask import Flask
 from flask import render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import prometheus_client
-import werkzeug
+from prometheus_client import metrics
 from prometheus_flask_exporter import PrometheusMetrics
+import werkzeug
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
-import time
 import threading
+import time
+
 
 app = Flask(__name__)
-PrometheusMetrics(app)
+metrics = PrometheusMetrics(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
 db = SQLAlchemy(app)
+
+# static information as metric
+metrics.info('app_info', 'Application info', version='1.0.3')
+
 SERVICE_UPTIME = prometheus_client.Gauge('service_uptime',
                                          'Hold the time elasted since service startup')
 RESPONSE_TIME = prometheus_client.Gauge('response_time_last',
                                         'Hold the last request response time')
-
 
 class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,7 +53,7 @@ def update():
 
 
 @app.route("/metrics", methods=["GET"])
-#@metrics.do_not_track()
+@metrics.do_not_track()
 def metrics():
     # Add prometheus wsgi middleware to route /metrics requests
     app_dispatch = werkzeug.middleware.dispatcher.DispatcherMiddleware(app, {
@@ -56,16 +61,15 @@ def metrics():
     })
     return app_dispatch
 
-
 def update_uptime():
     while True:
         SERVICE_UPTIME.inc(1)
         time.sleep(1)
 
-
 SERVICE_UPTIME.set(0)
 uptime_updater = threading.Thread(target=update_uptime)
 uptime_updater.start()
+
 
 if __name__ == '__main__':
     app.run("0.0.0.0", 5000, threaded=True, debug=False)

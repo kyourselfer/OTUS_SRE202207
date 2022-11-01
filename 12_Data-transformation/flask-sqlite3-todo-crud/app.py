@@ -1,14 +1,10 @@
-from flask import Flask
-from flask import render_template, request, redirect, url_for
+import requests
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import prometheus_client
-from prometheus_client import metrics
 from prometheus_flask_exporter import PrometheusMetrics
-import werkzeug
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import threading
 import time
-
 
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
@@ -16,7 +12,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
 db = SQLAlchemy(app)
 
 # static information as metric
-metrics.info('app_info', 'Application info', version='1.0.3')
+metrics.info('app_info', 'Application info', version='0.0.1')
 
 SERVICE_UPTIME = prometheus_client.Gauge('service_uptime',
                                          'Hold the time elasted since service startup')
@@ -28,13 +24,11 @@ class Todo(db.Model):
     text = db.Column(db.String(200))
     complete = db.Column(db.Boolean)
 
-
-@app.route("/", methods=["HEAD", "OPTIONS", "GET"])
+@app.route("/", methods=["GET","HEAD"])
 @RESPONSE_TIME.time()
 def index():
     todos = Todo.query.all()
     return render_template("index.html", todos=todos)
-
 
 @app.route('/add', methods=["POST"])
 def add():
@@ -45,21 +39,27 @@ def add():
     # return data # DEBUG REQUEST
     return redirect(url_for("index"))
 
-
 @app.route('/update', methods=["POST"])
 def update():
     # return request.form # DEBUG REQUEST
     return redirect(url_for("index"))
 
-
 @app.route("/metrics", methods=["GET"])
 @metrics.do_not_track()
 def metrics():
     # Add prometheus wsgi middleware to route /metrics requests
-    app_dispatch = werkzeug.middleware.dispatcher.DispatcherMiddleware(app, {
-        '/metrics': prometheus_client.make_wsgi_app()
-    })
-    return app_dispatch
+    return prometheus_client.make_wsgi_app()
+
+# Parsing WebAPI. https://www.youtube.com/watch?v=mNJKCg4BjC8
+@app.route("/api", methods=["GET"])
+def api():
+    # Convert html output GET, POST to Json API?
+    app_api = requests.get('http://localhost:5000/',)
+    #app_api = requests.get('http://api.open-notify.org/iss-now.json')
+    #print(app_api.status_code)
+    app_api = app_api.text
+    app_api = jsonify(app_api)
+    return app_api
 
 def update_uptime():
     while True:

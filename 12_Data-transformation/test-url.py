@@ -1,19 +1,16 @@
 import pytest
 import requests
 
-method="GET"
-redirect="True"
-timeout=3
-
 @pytest.mark.parametrize("name,schema,url,port", [
-    ("Google", "https://", "google.com", "443"),
-    ("open-notify.org", "http://", "api.open-notify.org/iss-now.json", "80"),
+    ("open-notify.org", "http://", "api.open-notify.org", "80"),
+    ("flask-sqlite3-todo-crud", "http://", "localhost", "5000"),
 ])
 
 def test_access(host, name, schema, url, port):
     testedaddress = host.addr(url)
     testedaddress.is_resolvable
     testedaddress.port(port).is_reachable
-    response = requests.get(schema+url,port)
-    assert response.status_code == 200
-
+    r = requests.get(schema+url+":"+port)
+    assert testedaddress.port
+    assert testedaddress.is_resolvable
+    assert r.status_code == 200

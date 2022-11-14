@@ -1,0 +1,34 @@
+version: "3"
+services:
+  front-nginx:
+    #    build:
+      #      context: .
+        #      dockerfile: nginx/Dockerfile
+    image: registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx
+    restart: always
+    container_name: front-nginx
+    ports:
+      - "8080:80"
+    networks:
+      - internal
+    volumes:
+      - ./nginx/data:/var/www/html
+      - ./nginx/logs/nginx:/var/log/nginx
+  back-flask:
+    #    build:
+    #      context: .
+    #      dockerfile: flask-sqlite3-todo-crud/Dockerfile
+    image: registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask
+    restart: always
+    container_name: back-flask
+    ports:
+      - "5000:5000"
+    networks:
+      - internal
+    volumes:
+      - ./flask:/app
+      - ./flask/db:/app/instance
+networks:
+  internal:
+    driver: bridge
+

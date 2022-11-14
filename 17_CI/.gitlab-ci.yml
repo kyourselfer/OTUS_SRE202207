@@ -1,0 +1,70 @@
+# Prepared image to build this.project
+image:
+  name: docker:20.10.16
+
+services:
+  - docker:20.10.16-dind
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  REGISTRY_PATH: registry.gitlab.com/kyourselfer/$CI_PROJECT_NAME
+  TAG: $CI_COMMIT_SHORT_SHA
+  CI_DEBUG_TRACE: "false"
+
+before_script:
+  - echo "$CI_REGISTRY_PASSWORD $CI_REGISTRY_USER"
+  #- docker login -u deploytoken -p Fxvz9tr1sq6GhPAh8Ctp registry.gitlab.com
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY_PATH
+  - docker info
+after_script:
+  # logout from docker
+  - echo 'after'
+  - docker logout
+  #- rm -rf ~/.docker/
+
+build:
+  stage: build
+  script:
+    - docker build -t registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx . -f Dockerfile.nginx
+    #- docker build . -f Dockerfile.nginx -t 17_ci_front-nginx:latest
+    - docker build -t registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask . -f Dockerfile.flask
+    #- docker build . -f Dockerfile.flask -t 17_ci_back-flask:latest
+    - docker push registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx
+    - docker push registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask
+    - echo '${CI_PROJECT_NAME} from branch ${CI_COMMIT_REF_SLUG} [stage ${CI_JOB_STAGE}]'
+  only:
+    - main
+
+test:
+  stage: test
+  image: python:3.8-slim
+  before_script:
+    - echo "skip before_script"
+  script:
+    - cd flask/
+    - chmod +x *.py
+    - pip3 install -r requirements.txt
+    - nohup ./app.py &
+    - sleep 5 && pytest -v -s ../test-url.py
+  after_script:
+    - echo "skip after_script"
+  only:
+    - main
+
+#
+deploy to env.Test:
+  stage: deploy
+  script:
+    # Deploy of Project on env.Test
+    - docker-compose up -d
+    - docker-compose ps
+    - docker-compose down --rmi all
+  environment:
+    name: Test
+    url: https://flask-sqlite3-todo-crud/
+  only:
+    - main

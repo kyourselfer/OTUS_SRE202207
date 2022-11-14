@@ -1,0 +1,52 @@
+vim docker-compose.yml
+version: "3"
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports: 
+      - "8080:80"
+    networks:
+      - internal
+    volumes:
+      - ./data/:/var/www/html/
+      - ./logs/nginx:/var/log/nginx/
+  flask:
+    image: python:3.8-slim
+    networks:
+      - internal
+    volumes:
+      - ../flask-sqlite3-todo-crud/:/app
+networks:
+  internal:
+    driver: bridge
+    
+vim nginx/Dockerfile
+FROM nginx:alpine
+COPY nginx/default.conf /etc/nginx/conf.d
+COPY ./data/ /var/www/html/
+
+vim flask-sqlite3-todo-crud/Dockerfile
+FROM python:3.8-slim
+RUN pip install --no-cache-dir flask flask_sqlalchemy
+COPY . /app
+WORKDIR /app
+CMD python app.py
+# flask-sqlite3-todo-crud.apline
+#pip3 install flask prometheus-client prometheus_flask_exporter testinfra
+    
+vim nginx/default.conf
+server {
+    listen 0.0.0.0:80;
+    root /var/www/html;
+    location / {
+        index index.php index.html;
+    }
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass php:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root/$fastcgi_script_name;
+    }
+}

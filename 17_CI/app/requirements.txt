@@ -2,6 +2,8 @@
 # It is possible to specify requirements as plain names.
 flask >= 2.2.2
 Flask-SQLAlchemy >= 3.0.2
+psycopg2-binary >= 2.9.5
+Flask-Migrate >= 4.0.0
 requests >= 2.28.1
 prometheus-client >= 0.15.0
 prometheus_flask_exporter >= 0.20.3

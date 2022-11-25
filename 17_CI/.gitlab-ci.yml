@@ -7,7 +7,8 @@ services:
 
 stages:
   - build
-  - test
+  - TestsUnit
+  - TestsIntegration
   - deploy
 
 variables:
@@ -16,13 +17,9 @@ variables:
   CI_DEBUG_TRACE: "false"
 
 before_script:
-  - echo "$CI_REGISTRY_PASSWORD $CI_REGISTRY_USER"
-  #- docker login -u deploytoken -p Fxvz9tr1sq6GhPAh8Ctp registry.gitlab.com
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY_PATH
   - docker info
 after_script:
-  # logout from docker
-  - echo 'after'
   - docker logout
   #- rm -rf ~/.docker/
 
@@ -30,41 +27,136 @@ build:
   stage: build
   script:
     - docker build -t registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx . -f Dockerfile.nginx
-    #- docker build . -f Dockerfile.nginx -t 17_ci_front-nginx:latest
-    - docker build -t registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask . -f Dockerfile.flask
-    #- docker build . -f Dockerfile.flask -t 17_ci_back-flask:latest
+    - cd ./app/ && docker build -t registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask . -f ../Dockerfile.flask
     - docker push registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx
     - docker push registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask
     - echo '${CI_PROJECT_NAME} from branch ${CI_COMMIT_REF_SLUG} [stage ${CI_JOB_STAGE}]'
   only:
     - main
+    - IntegrationChecks
 
-test:
-  stage: test
-  image: python:3.8-slim
+#TestsUnit:
+#  stage: TestsUnit
+#  image: python:3.8-slim
+#  before_script:
+#    - echo "skip before_script"
+#  script:
+#    # Inside code checks (uses: testing client)
+#    - cd app/
+#    - pip3 install --no-cache-dir -r requirements.txt
+#    - apt update -y && apt install -y postgresql-13
+#    - bash ../tests/postgresql_up_$CI_JOB_STAGE.sh
+#    - echo '127.0.0.1 pg-0' >> /etc/hosts
+#    - export FLASK_APP=app.py && flask db init && flask db migrate && flask db upgrade
+#    - cd ../tests/
+#    - pytest --junitxml=../junit.xml -v -s $CI_JOB_STAGE.py
+#  artifacts:
+#    when: always
+#    paths:
+#      - junit.xml
+#    reports:
+#      junit: junit.xml
+#  after_script:
+#    - echo "skip after_script"
+#  only:
+#    - main
+#    - IntegrationChecks
+
+# Tests: Unit/Code
+TestsUnit:
+  stage: TestsUnit
   before_script:
-    - echo "skip before_script"
+    # Prepare db
+    - mkdir -p ./db/pg_0_data ./db/pg_1_data && chmod 0777 -R ./db
+    - docker-compose up -d
+    - sleep 15 && docker exec back-flask './prepare_db.sh' && sleep 15
   script:
-    - cd flask/
-    - chmod +x *.py
-    - pip3 install -r requirements.txt
-    - nohup ./app.py &
-    - sleep 5 && pytest -v -s ../test-url.py
+    # UnitTests
+    - docker cp tests/TestsUnit.py back-flask:/app/
+    - docker cp tests/TestsUnit.sh back-flask:/app/
+    - docker exec back-flask './TestsUnit.sh'
   after_script:
-    - echo "skip after_script"
+    - docker-compose down --remove-orphans -v --rmi all
+  artifacts:
+     when: always
+     paths:
+       - ./app/junit-Unit.xml
+     reports:
+       junit: ./app/junit-Unit.xml
   only:
     - main
+    - IntegrationChecks
 
-#
+#TestsIntegration:
+#  stage: TestsIntegration
+#  image: joyzoursky/python-chromedriver:3.8
+#  before_script:
+#    - echo "skip before_script"
+#  script:
+#    # Run app.py
+#    - cd app/
+#    - chmod +x *.py
+#    - pip3 install --no-cache-dir -r requirements.txt
+#    # Prepare DB
+#    - apt update -y && apt install -y postgresql-11
+#    - bash ../tests/postgresql_up_$CI_JOB_STAGE.sh
+#    - echo '127.0.0.1 pg-0' >> /etc/hosts
+#    - export FLASK_APP=app.py && flask db init && flask db migrate && flask db upgrade
+#    - nohup ./app.py &
+#    # External checks svc app (uses: pytest, selenium)
+#    - cd ../tests/
+#    - pip3 install --no-cache-dir -r requirements.txt
+#    - sleep 5 && pytest --junitxml=../junitIntegration.xml -v -s $CI_JOB_STAGE.py
+#  artifacts:
+#    when: always
+#    paths:
+#      - junitIntegration.xml
+#    reports:
+#      junit: junitIntegration.xml
+#  after_script:
+#    - echo "skip after_script"
+#  only:
+##    - main
+#    - IntegrationChecks
+
+# Tests: Integration/API/Contract
+TestsIntegration:
+  stage: TestsIntegration
+  before_script:
+    # Prepare db
+    - mkdir -p ./db/pg_0_data ./db/pg_1_data && chmod 0777 -R ./db
+    - docker-compose up -d
+    - sleep 15 && docker exec back-flask './prepare_db.sh' && sleep 15
+  script:
+    # IntegrationTests
+    - docker-compose up TestsIntegration
+  after_script:
+    - docker-compose down --remove-orphans -v --rmi all
+  artifacts:
+    when: always
+    paths:
+      - ./tests/junit-Integration.xml
+    reports:
+      junit: ./tests/junit-Integration.xml
+  only:
+    - main
+    - IntegrationChecks
+
+# Deploy of Project on env.Test
 deploy to env.Test:
   stage: deploy
-  script:
-    # Deploy of Project on env.Test
+  before_script:
+    # Prepare db
+    - mkdir -p ./db/pg_0_data ./db/pg_1_data && chmod 0777 -R ./db
     - docker-compose up -d
+    - sleep 15 && docker exec back-flask './prepare_db.sh' && sleep 15
+  script:
     - docker-compose ps
-    - docker-compose down --rmi all
+  after_script:
+    - docker-compose down --remove-orphans -v --rmi all
   environment:
     name: Test
     url: https://flask-sqlite3-todo-crud/
   only:
     - main
+#    - IntegrationChecks

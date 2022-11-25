@@ -1,6 +1,8 @@
 FROM python:3.8-slim
 #RUN pip3 install pip --upgrade
-RUN pip3 install --no-cache-dir flask flask_sqlalchemy requests prometheus-client prometheus_flask_exporter
 COPY . /app
 WORKDIR /app
+RUN pip3 install --no-cache-dir -r requirements.txt
+#RUN echo '127.0.0.1 pg-0' >> /etc/hosts
+#RUN export FLASK_APP=app.py && flask db init && flask db migrate && flask db upgrade
 CMD python3 app.py

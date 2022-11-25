@@ -1,0 +1,12 @@
+# Run app.py
+flask >= 2.2.2
+Flask-SQLAlchemy >= 3.0.2
+requests >= 2.28.1
+psycopg2-binary >= 2.9.5
+Flask-Migrate >= 4.0.0
+prometheus-client >= 0.15.0
+prometheus_flask_exporter >= 0.20.3
+# External checks svc app.py
+requests >= 2.28.1
+pytest-testinfra >= 6.8.0
+selenium >= 4.6.0

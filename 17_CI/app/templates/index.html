@@ -32,6 +32,12 @@
                 <input type="submit" value="Submit new item">
             </form>
         </div>
+        <div class="delete-todo">
+            <form action="/delete" method="POST">
+                <input type="text" name="todo_item2">
+                <input type="submit" value="Submit delete item">
+            </form>
+        </div>
         <div class="todo">
             <h1>Pending</h1>
             <form action="/update" method="POST">

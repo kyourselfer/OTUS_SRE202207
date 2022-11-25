@@ -2,32 +2,99 @@ version: "3"
 services:
   front-nginx:
     #    build:
-      #      context: .
-        #      dockerfile: nginx/Dockerfile
+    #      context: .
+    #      dockerfile: nginx/Dockerfile
     image: registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_front-nginx
     restart: always
     container_name: front-nginx
+    depends_on:
+      - back-flask
     ports:
-      - "8080:80"
+      - '8080:80'
     networks:
       - internal
     volumes:
       - ./nginx/data:/var/www/html
-      - ./nginx/logs/nginx:/var/log/nginx
+    #  - ./nginx/logs/nginx:/var/log/nginx
   back-flask:
     #    build:
     #      context: .
-    #      dockerfile: flask-sqlite3-todo-crud/Dockerfile
+    #      dockerfile: app-sqlite3-todo-crud/Dockerfile
     image: registry.gitlab.com/kyourselfer/otus_sre202207:17_ci_back-flask
     restart: always
     container_name: back-flask
+    depends_on:
+      - pg-0
     ports:
-      - "5000:5000"
+      - '5000:5000'
     networks:
       - internal
     volumes:
-      - ./flask:/app
-      - ./flask/db:/app/instance
+      - ./app:/app
+#      - ./app/db:/app/instance
+  pg-0:
+    image: docker.io/bitnami/postgresql-repmgr:15
+    restart: always
+    container_name: pg-0
+    ports:
+      - 5432
+    networks:
+      - internal
+    volumes:
+      - ./db/pg_0_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=todo
+      - REPMGR_PASSWORD=repmgrpassword
+      - REPMGR_PRIMARY_HOST=pg-0
+      - REPMGR_PRIMARY_PORT=5432
+      - REPMGR_PARTNER_NODES=pg-0,pg-1:5432
+      - REPMGR_NODE_NAME=pg-0
+      - REPMGR_NODE_NETWORK_NAME=pg-0
+      - REPMGR_PORT_NUMBER=5432
+  pg-1:
+    image: docker.io/bitnami/postgresql-repmgr:15
+    restart: always
+    container_name: pg-1
+    ports:
+      - 5432
+    networks:
+      - internal
+    volumes:
+      - ./db/pg_1_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=adminpassword
+      - POSTGRESQL_USERNAME=customuser
+      - POSTGRESQL_PASSWORD=custompassword
+      - POSTGRESQL_DATABASE=todo
+      - REPMGR_PASSWORD=repmgrpassword
+      - REPMGR_PRIMARY_HOST=pg-0
+      - REPMGR_PRIMARY_PORT=5432
+      - REPMGR_PARTNER_NODES=pg-0,pg-1:5432
+      - REPMGR_NODE_NAME=pg-1
+      - REPMGR_NODE_NETWORK_NAME=pg-1
+      - REPMGR_PORT_NUMBER=5432
+  TestsIntegration:
+    #    build:
+    #      context: .
+    #      dockerfile: app-sqlite3-todo-crud/Dockerfile
+    image: joyzoursky/python-chromedriver:3.8
+    container_name: TestsIntegration
+    working_dir: /tests
+    command: ./TestsIntegration.sh
+    depends_on:
+      - back-flask
+    networks:
+      - internal
+    volumes:
+      - ./tests:/tests
+volumes:
+  pg_0_data:
+    driver: local
+  pg_1_data:
+    driver: local
 networks:
   internal:
     driver: bridge

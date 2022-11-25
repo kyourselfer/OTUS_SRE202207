@@ -1,2 +1,13 @@
 /logs/
 .idea/
+/app/junit.xml
+/tests/.pytest_cache/
+/tests/junitIntegration.xml
+/junitIntegration.xml
+/app/nohup.out
+/app/.pytest_cache/
+/app/app2.py
+/docker-compose2.yml
+/nginx/logs/
+/junit.xml
+/.pytest_cache/

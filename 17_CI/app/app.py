@@ -2,15 +2,17 @@
 import requests
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import prometheus_client
 from prometheus_flask_exporter import PrometheusMetrics
-import threading
+#import threading
 import time
 
 app = Flask(__name__)
-metrics = PrometheusMetrics(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://customuser:custompassword@pg-0:5432/todo"
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+metrics = PrometheusMetrics(app)
 
 # static information as metric
 metrics.info('app_info', 'Application info', version='0.0.1')
@@ -21,9 +23,15 @@ RESPONSE_TIME = prometheus_client.Gauge('response_time_last',
                                         'Hold the last request response time')
 
 class Todo(db.Model):
+    __tablename__ = 'todos'
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(200))
     complete = db.Column(db.Boolean)
+    def __init__(self, text, complete):
+        self.text = text
+        self.complete = complete
+    def __repr__(self):
+        return f"<eat {self.text}>"
 
 @app.route("/", methods=["GET","HEAD"])
 @RESPONSE_TIME.time()
@@ -42,6 +50,14 @@ def add():
 
 @app.route('/update', methods=["POST"])
 def update():
+    # return request.form # DEBUG REQUEST
+    return redirect(url_for("index"))
+
+@app.route('/delete', methods=["DELETE","POST"])
+def delete():
+    data = request.form["todo_item2"]
+    Todo.query.filter_by(text=data).delete()
+    db.session.commit()
     # return request.form # DEBUG REQUEST
     return redirect(url_for("index"))
 
@@ -67,10 +83,9 @@ def update_uptime():
         SERVICE_UPTIME.inc(1)
         time.sleep(1)
 
-SERVICE_UPTIME.set(0)
-uptime_updater = threading.Thread(target=update_uptime)
-uptime_updater.start()
-
+#SERVICE_UPTIME.set(0)
+#uptime_updater = threading.Thread(target=update_uptime)
+#uptime_updater.start()
 
 if __name__ == '__main__':
-    app.run("0.0.0.0", 5000, threaded=True, debug=False)
+    app.run("0.0.0.0", 5000, threaded=True, debug=True)

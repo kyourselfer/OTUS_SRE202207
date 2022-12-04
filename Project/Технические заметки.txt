@@ -3,8 +3,19 @@
     -
   - Настроить prometheus operator
     - Chelm chart
+  # metrics-server не нужен в prom-stack включён
+  # Проверка PV. https://platform9.com/blog/tutorial-dynamic-provisioning-of-persistent-storage-in-kubernetes-with-minikube/
+  # Ставим helm.
+  # Смотрим матрицу совместимости https://github.com/prometheus-operator/kube-prometheus#kubernetes-compatibility-matrix
+  # ? k8s 1.23 == prom-stack release-0.11
+  # grafana: admin/otusotus
+
   - Настроить grafana oncall (взглянуть habra статьи по настройке)
+  # https://github.com/grafana/oncall
+  # https://habr.com/ru/post/688794/, https://raw.githubusercontent.com/grafana/oncall/dev/docs/img/architecture_diagram.png
     - Настроить escalation chain добавление узла в кластер на тригер перегрузки кластера
+  #
+
 
   - Запустить DevOps CI/CD для вашего кода
   - Automate infrastructure scaling `не реализуемо исходя из возможностей инфраструктуры`

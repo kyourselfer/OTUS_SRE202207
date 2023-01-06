@@ -1,0 +1,65 @@
+# Descriptions
+https://vc.ru/dev/461049-sre-site-reliability-engineering-na-yazyke-biznesa?comments
+https://sgolubev.ru/howto-golden-signals-sre/
+
+Принципы SRE:
+  - Принятие риска(Embracing Risk)
+    - 
+    
+  - Уровень Обслуживания Целей(Service Level Objectives)
+    - SLI:
+      availability.infra=uptime/(uptime+downtime)
+      availability.svc=successfull_requests/(total_requests)
+      
+  - Избегайте рутину(Eliminating Toil)
+    - 50% времени на operations(ручные) задачи (+оставлять следы/заметка/sheduler об идеи)
+      чтение логов
+      анализ производительности
+      патчи
+      тестирование
+      тикетница
+      postmortem(вскрытие всех этапов ситуации)
+    - 50% времени на разработку утилит:
+      оптимизация сервиса
+      автоматизации ручных действий
+      
+  - Мониторинг распределеннýх систем(Monitoring Distributed Systems)
+    - это дорого и задача объяснить бизнесу почему
+      - анализ долгосрочных тенденций(сравнение SLI с предыдущими или эксперементальными версиями)
+      - сравнение схожих систем
+      - алертинг(metrics/logging)
+      - dashboards
+        - 4 golden signals? измерить вещи, которые непосредственно влияют на конечных пользователей и на части системы, которые делают всю работу
+          USE(Utilization,Saturation,Errors)
+          RED(Rate,Errors,Duration)
+          LTES:
+            Время отклика(Latency)
+            Объём трафика(Traffic)
+              Кол-во: запросов, сессий, транзакций
+            Кол-во ошибок(Errors)
+            Степень загруженности сервиса(Saturation)
+      - debugging
+    - logging
+    - distributed tracing и application perfomance monitoring(помогает увидеть время отклика каждого элемента сервиса одного к другому)
+  - o11y:
+    - Метрики (Обаружение/Detect)
+      Google SRE: задержка (Latency), трафик (Traffic), ошибки (Errors) и насыщенность (Saturation)
+      Метод USE (от Брендана Грегга): использование (Utilization), насыщенность (Saturation) и ошибки (Errors). USE - это ресурсы с внутренним представлением
+      RED метод (от Тома Уилки): частота (Rate), ошибки (Errors) и продолжительность (Duration). RED - с запросами, реальной работой и, следовательно, внешним представлением(с точки зрения потребителя услуг)
+      Логи (Диагностирование/Diagnose)
+      (Бэк)Трейсы(Isolate&Improve)
+    
+  - Автоматизация(Automation). Без автоматизаøии невозможно создаватþ сервисý с доступностþĀ равной или болþúе 99.99%
+    - CICD для IaC
+    - IaC(Terraform/Ansible/Helm)
+    - Тесты
+    
+  - Управление релизами(Release Engineering)
+    - Deployment stra
+      Reckless Deployment. Имеем дуантайм т.к. простая накатка одного на другой
+      Rolling Upgrade. Постепенная смена одной версии на другую с healthcheck
+      Blue/Green Deployment. Перерключение на новую версию и быстрое переключение обратно, если необходимо.
+      Canary Deployment. 
+      
+  - Simplicity / Простота
+     - ?

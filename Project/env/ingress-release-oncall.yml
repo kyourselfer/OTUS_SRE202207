@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    meta.helm.sh/release-name: release-oncall
+    meta.helm.sh/release-namespace: default
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+    nginx.ingress.kubernetes.io/client-max-body-size: 512m
+    nginx.ingress.kubernetes.io/connect_timeout: "7200"
+    nginx.ingress.kubernetes.io/max-worker-connections: "1000"
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "7200"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+    nginx.ingress.kubernetes.io/proxy_set_header: Connection ""
+    nginx.ingress.kubernetes.io/read_timeout: "7200"
+    nginx.ingress.kubernetes.io/send_timeout: "7200"
+    nginx.ingress.kubernetes.io/whitelist-source-range: 0.0.0.0/0
+    nginx.ingress.kubernetes.io/worker_processes: "2"
+  labels:
+    app.kubernetes.io/instance: release-oncall
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: oncall
+    app.kubernetes.io/version: v1.1.0
+    helm.sh/chart: oncall-1.0.12
+  name: release-oncall
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: oncall.vriendsdev.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: release-oncall-engine
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+      - backend:
+          service:
+            name: release-oncall-grafana
+            port:
+              number: 80
+        path: /grafana
+        pathType: Prefix
+  tls:
+  - hosts:
+    - oncall.vriendsdev.com
+    secretName: com-vriendsdevoncall-crt

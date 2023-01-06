@@ -1,37 +1,117 @@
 1 этап
   - Запустить k3s/minikube
-    -
+    - minikube
   - Настроить prometheus operator
     - Chelm chart
-  # metrics-server не нужен в prom-stack включён
+  # metrics-server не нужен в prom-stack, комплектуется с chart
   # Проверка PV. https://platform9.com/blog/tutorial-dynamic-provisioning-of-persistent-storage-in-kubernetes-with-minikube/
   # Ставим helm.
   # Смотрим матрицу совместимости https://github.com/prometheus-operator/kube-prometheus#kubernetes-compatibility-matrix
-  # ? k8s 1.23 == prom-stack release-0.11
+  # ? k8s 1.23 == prom-stack release-0.11 && certmanager in selfhosted mode &&
+  # installed on grafana.project.local
   # grafana: admin/otusotus
 
-  - Настроить grafana oncall (взглянуть habra статьи по настройке)
-  # https://github.com/grafana/oncall
-  # https://habr.com/ru/post/688794/, https://raw.githubusercontent.com/grafana/oncall/dev/docs/img/architecture_diagram.png
-    - Настроить escalation chain добавление узла в кластер на тригер перегрузки кластера
-  #
+    # install MetaLB. https://metallb.universe.tf/installation/
+    kubectl edit configmap -n kube-system kube-proxy
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    kind: KubeProxyConfiguration
+    mode: "ipvs"
+    ipvs:
+      strictARP: true
 
+    - Настроить grafana oncall (взглянуть habra статьи по настройке)
+    # https://github.com/grafana/oncall
+    # https://habr.com/ru/post/688794/, https://raw.githubusercontent.com/grafana/oncall/dev/docs/img/architecture_diagram.png
+    # https://github.com/grafana/oncall/tree/dev/helm/oncall :
+    #-helm install --wait --set base_url=control-plane.minikube.internal --set grafana."grafana\.ini".server.domain=control-plane.minikube.internal release-oncall grafana/oncall
+    cd /home/rootadmin/PycharmProjects/OTUS_SRE202207/Project/env/oncall/helm
+    helm upgrade --install release-oncall ./oncall-1.0.13.tgz -f values-custom-oncall-1.0.13.yaml
+    admin/EwngqtnRvh0n35puaWCEWXY2EZ2GgWkyXsGu1zIY
+    
+    ???????????????????? попробывать на vriendsdev.com ??????
+    https://oncall.vriendsdev.com/grafana/login: admin/0kdMZKsIHke6bSYt87Stq55ks2254qd6QzVPvg2W
+    export POD_NAME=$(kubectl get pods --namespace default -l "app.kubernetes.io/name=oncall,app.kubernetes.io/instance=release-oncall,app.kubernetes.io/component=engine" -o jsonpath="{.items[0].metadata.name}")
+    kubectl exec -it $POD_NAME --namespace default -- bash -c "python manage.py issue_invite_for_the_frontend --override"
+    5dc75dad7e9cfdd805bac7250d4dbc61776031de5528ebfc9a8ddb6951dbbc29
+    1d6f4125233c7d604e6885f2a81b41de287217c71e29a977fe5116e9363cae39
+    grafana-cli plugins install grafana-oncall-app v1.1.2 && grafana-cli plugins ls
+    https://t.me/+FCu1HTIcnqFlNzFi
+    +обновить chart из локального пути    
+    +Настроить escalation chain добавление узла в кластер на тригер перегрузки кластера
+    # cluster:node_cpu:ratio_rate5m
 
   - Запустить DevOps CI/CD для вашего кода
   - Automate infrastructure scaling `не реализуемо исходя из возможностей инфраструктуры`
-  - Как вы будете соблюдать правило 50/50 ( стратегия ) `нужно ознакомиться/вспомнить`
+  
+  - Как вы будете соблюдать правило 50/50 ( стратегия )
+    - 50% времени уходит на тактические/operations (ручные) задачи
+чтение логов, анализ производительности, патчи, тестирование, тикетница,
+postmortem(вскрытие всех этапов ситуации) (Пример Spring+Postgres. ситуация: приложение отдаёт 500, причина ошибки в log: получили table_lock в DB, способ обнаружения: создали метрику проверки наличия table_lock в DB. Воспроизведение ситуции на QA стенде)
+    - 50% времени на разработку утилит для оптимизации и автоматизации ручных действий И Пример. Поиск всех приложений на Spring с использованием ConnectionString=Postgres, результатом будет возврат svc и кредов для передачи в метрику (spring_lock{svc,username(env $base64),password(env $base64)})
+    
   - Проведите SRE тренинг для других команд (pdf презентация)
+    ------------------------ позже
+    
 2 этап
   - Определите SLA,SLO,SLI. Чем вы руководствовались, с кем вы общались в компании?
+    ------------------------ позже
+    SLI:
+      - availability.infra=uptime/(uptime+downtime)
+      - availability.svc=successfull_requests/(total_requests)
+    продакт-оунером
+    
   - Измерьте поведение Вашей системы на соответствие SL*. Как вы этого добьетесь?
+    ------------------------ позже
+    
   - Определите Error-Budgeet (velocity vs quality)
-  - Определите OKR для SRE `нужно ознакомиться/вспомнить`
+    - 
+    
+  - Определите OKR для SRE. https://www.srepath.com/25-site-reliability-engineering-okrs/
+    - 
+    
+  - Методика Star(истроия траблшутинга)
+    - вспомнить про: обновление через terraform(ingress_features_websocket?), eam+spring(readness/liveness), последний день перед отменой в 2/4 нидели, drbd(primary_switch.sh(order of stages),chdsk), vriends(библиотека экспортёра долгий scrape и обновление библиотеки), 
+      Ситуация— situation: что случилось.
+      Задача — task: что нужно было сделать.
+      Действие — action: что было сделано.
+      Результат — result: что вышло.
+     
 3 этап
   - Внедрите мониторинг
   - Golden signals: latency, saturation, traffic, errors
+    * - https://sgolubev.ru/howto-golden-signals-sre/
+    4 golden signals? измерить вещи, которые непосредственно влияют на конечных пользователей и на части системы, которые делают всю работу
+    USE(Utilization,Saturation,Errors)
+    RED(Rate,Errors,Duration)
+    LTES:
+      Время отклика(Latency)
+      Объём трафика(Traffic)
+      Кол-во: запросов, сессий, транзакций
+      Кол-во ошибок(Errors)
+      Степень загруженности сервиса(Saturation)
+    
   - В процессе релиза упал memcached. Выпустите Blameles postmortem `со стороны app не имею кэширующего функционала для redis/memcached`
   - Исправьте архитектуру чтобы этого больше не происходило
 4 этап
   - Проверьте что падение memcached больше не ломает систему. проведите эксперимент `со стороны app не имею кэширующего функционала для redis/memcached`
-  - Handle improvement discussion `нужно ознакомиться/вспомнить`
-  - Response scenarios based on proactive monitoring `нужно ознакомиться/вспомнить`
+
+
+  - Handle improvement discussion
+    - 
+    
+  - Response scenarios based on proactive monitoring
+    - 
+    
+ 
+# Fixed
+ Canary развёртывание - 
+ RPC - 
+
+### Project
+1) привязать наш K8s к GitlabCI
+2) сделать dashboard
+3) + Сделать нагрузку и oncall
+4) сделать канарейку
+
+#
+https://novopavlovsk.hh.ru/vacancy/68873428?from=vacancy_search_list&query=Sre

@@ -9,7 +9,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 import time
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://customuser:custompassword@pg-0:5432/todo"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://customuser:custompassword@pgsql-postgresql-ha-pgpool.pgsql-ha.svc.cluster.local:5432/todo"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 metrics = PrometheusMetrics(app)
